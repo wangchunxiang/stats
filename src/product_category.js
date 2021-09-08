@@ -238,6 +238,7 @@
         });
 
         //结束
+        clearInterval(nrSpider.defer.endQueue);
         nrSpider.defer.endQueue = setInterval(() => {
             if (nrSpider.queueList.length == 0) {
                 clearInterval(nrSpider.defer.task);
@@ -267,7 +268,7 @@
 
 //参数配置
 spc.config = {
-    //下载名称
+    //下载名称：统计用产品分类目录 http://www.stats.gov.cn/tjsj/tjbz/tjypflml/index.html
     fileName: "stats-product-category",
 
     //索引目录
@@ -279,7 +280,7 @@ spc.config = {
         "http://www.stats.gov.cn/tjsj/tjbz/tjypflml/index_4.html"
     ],
     //最大深度（1-5）
-    maxDeep: 5,
+    maxDeep: 3,
     //抓指定编码，为空时抓所有
     filterCode: ""
 };

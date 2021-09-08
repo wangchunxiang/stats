@@ -15,17 +15,45 @@ http://www.stats.gov.cn/tjsj/tjbz/tjypflml/index.html
 最新发布时间 2010-06-17 ，共 5 级，爬 4 级错误链接 1 个，爬 5 级错误链接 87 个  
 已根据代码 ID 去重，去除子节点与父节点相同的项
 
+**0.json** 一级大分类  
+**01.json** 一级下所有子分类  
+**97.json** 一级下所有子分类  
+
+**stats-product-category-3.json** 爬虫三级总数据  
+**stats-product-category-4.json** 爬虫四级总数据  
+**stats-product-category-5.json** 爬虫五级总数据  
+
+**catch-5.json** 爬虫五级异常记录（失败的链接）
+
 ```
 npm install stats-product-category
 ```
 
 列信息
 
- 字段 | 类型 | 说明
- ---- | ---- | ---- 
- id | string | 代码，唯一 
- txt | string | 名称 
- pid | string | 父级代码
- num | int | 同级排序 
- deep | int | 爬取层级 
+字段 | 类型 | 说明
+---- | ---- | ---- 
+id | string | 代码，唯一 
+txt | string | 名称 
+pid | string | 父级代码
+num | int | 同级排序 
+deep | int | 爬取层级 
 
+
+### ❤ product_unit.js
+
+产品计量单位  
+http://tjj.hubei.gov.cn/bsfw/lwzb/ywzn/202005/t20200521_2282796.shtml
+
+湖北省统计局产品计量单位 2020-04-28 ，分 通用计量单位 和 专用计量单位
+
+**stats-product-unit.json** 全部单位  
+**stats-product-unit-common.json** 通用计量单位，不含专用计量单位
+
+列信息
+
+字段 | 类型 | 说明
+---- | ---- | ---- 
+id | string | 代码，唯一 
+txt | string | 名称 
+remark | string | 说明 

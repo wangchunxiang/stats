@@ -233,9 +233,58 @@
     },
 
     /**
+     * blob 构建 文本
+     * @param {any} data
+     */
+    blobCreateText: function (data) {
+        var blob = new Blob([data], { type: "text/plain;charset=utf-8" });
+        return blob;
+    },
+
+    /**
+     * blob 构建
+     * @param {any} data
+     * @param {any} type
+     */
+    blobCreate: function (data, type) {
+        var blob = new Blob([data], { type: type });
+        return blob;
+    },
+
+    /**
+     * blob 下载
+     * @param {any} blob
+     * @param {any} filename
+     */
+    blobDownload: function (blob, filename) {
+        return saveAs(blob, filename)
+    },
+
+    /**
+     * blob 转 url
+     * @param {any} blob
+     */
+    blobAsUrl: function (blob) {
+        return window.URL.createObjectURL(blob);
+    },
+
+    /**
+     * blob 请求
+     * @param {any} src
+     */
+    blobGet: function (src) {
+        return fetch(src, {
+            method: 'get',
+            responseType: 'blob'
+        }).then(res => {
+            return res.blob();
+        });
+    },
+
+    /**
      * array => excel
      * @param {any} arr
-     * @param {any} heads 头宽度 {id:70,txt:150}
+     * @param {any} heads 头宽度（可选） {id:70,txt:150}
      */
     arrayToExcel: function (arr, heads) {
         return new Promise((resolve) => {
@@ -254,6 +303,12 @@
 
             //填充头部
             var headers = [];
+            if (heads == null) {
+                heads = {};
+                for (var i in arr[0]) {
+                    heads[i] = 120;
+                }
+            }
             for (var i in heads) {
                 headers.push({ header: i, key: i, width: heads[i] / 7, style: { alignment: { vertical: 'middle', horizontal: 'left' } } })
             }
@@ -280,9 +335,8 @@
 
             //保存
             workbook.xlsx.writeBuffer().then(function (data) {
-                var blob = new Blob([data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                var blob = nrSpider.blobCreate(data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
                 resolve(blob);
-                //saveAs(blob, 'file.xlsx');
             });
         })
     },
