@@ -7,7 +7,7 @@
     //抓取目录
     dataIndex: [],
     //抓取数据
-    dataMatch: [],
+    dataResult: [],
     //抓取异常记录
     dataCatch: [],
 
@@ -79,6 +79,8 @@
         });
 
         Promise.all(parr).then(() => {
+            console.warn("目录解析完成");
+
             //修复目录排序
             spc.dataIndex.sort(function (a, b) { return a.id - b.id });
             for (var i = 0; i < spc.dataIndex.length; i++) {
@@ -113,7 +115,7 @@
             var data = spc.matchResult(res, item);
 
             //得到数据
-            spc.dataMatch = spc.dataMatch.concat(data);
+            spc.dataResult = spc.dataResult.concat(data);
 
             //加入队列（过滤数据）
             if (data.length && item.deep < spc.config.maxDeep - 1) {
@@ -137,7 +139,7 @@
         for (var i = 0; i < spc.dataCatch.length; i++) {
             var item = spc.dataCatch[i].item;
 
-            if (spc.dataMatch.filter(x => x.id == item.id).length) {
+            if (spc.dataResult.filter(x => x.id == item.id).length) {
                 spc.dataCatch.splice(i, 1)
             }
         }
@@ -161,7 +163,7 @@
         })
         //填充总数据、子数据
         data = data.concat(indexs);
-        spc.dataMatch.forEach(di => {
+        spc.dataResult.forEach(di => {
             var obj = { id: di.id, txt: di.txt, pid: di.pid, num: di.num, deep: di.deep };
             data.push(obj);
 
@@ -233,7 +235,7 @@
             var task = nrSpider.queueUse();
             if (task) {
                 task.forEach(x => spc.grab(x));
-                nrSpider.consoleFuse(`Rows: ${spc.dataMatch.length} ，Queue: ${nrSpider.queueList.length} ，Request: ${nrSpider.countRequest} ，Catch: ${spc.dataCatch.length}`, 'process');
+                nrSpider.consoleFuse(`Rows: ${spc.dataResult.length} ，Queue: ${nrSpider.queueList.length} ，Request: ${nrSpider.countRequest} ，Catch: ${spc.dataCatch.length}`, 'process');
             }
         });
 

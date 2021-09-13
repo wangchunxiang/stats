@@ -77,7 +77,7 @@
             } else {
                 task();
             }
-        }, 10);
+        }, 2);
 
         document.onkeydown = (e) => {
             //Pause/Break
@@ -95,14 +95,25 @@
      */
     getScript: function (src) {
         return new Promise((resolve) => {
-            var ele = document.createElement("SCRIPT");
-            ele.src = src;
-            ele.type = "text/javascript";
-            document.getElementsByTagName("HEAD")[0].appendChild(ele);
-
-            ele.onload = ele.onreadystatechange = function () {
-                if (!this.readyState || this.readyState == "loaded" || this.readyState == "complete") {
-                    resolve();
+            var isLoad = false;
+            for (var i = 0; i < document.scripts.length; i++) {
+                var si = document.scripts[i];
+                if (si.src == src) {
+                    isLoad = true;
+                    break;
+                }
+            }
+            if (isLoad) {
+                resolve();
+            } else {
+                var ele = document.createElement("SCRIPT");
+                ele.src = src;
+                ele.type = "text/javascript";
+                document.getElementsByTagName("HEAD")[0].appendChild(ele);
+                ele.onload = ele.onreadystatechange = function () {
+                    if (!this.readyState || this.readyState == "loaded" || this.readyState == "complete") {
+                        resolve();
+                    }
                 }
             }
         })
@@ -125,6 +136,20 @@
     type: function (obj) {
         var tv = {}.toString.call(obj);
         return tv.split(' ')[1].replace(']', '');
+    },
+
+    /**
+     * base64 => Uint8Array
+     * @param {any} base64
+     */
+    base64ToUint8Array: function (base64) {
+        base64 = base64.split(',').pop();
+        var raw = atob(base64);
+        var uint8Array = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) {
+            uint8Array[i] = raw.charCodeAt(i);
+        }
+        return uint8Array;
     },
 
     /**
@@ -165,13 +190,11 @@
     },
 
     /**
-     * 获取或设置属性
+     * 获取属性
      * @param {any} node
      * @param {any} name
      */
-    parsingAttr: function (node, name) {
-        return node.getAttribute(nrSpider.parsingKey + name);
-    },
+    parsingAttr: (node, name) => node.getAttribute(nrSpider.parsingKey + name),
 
     /**
      * 请求链接
@@ -236,37 +259,27 @@
      * blob 构建 文本
      * @param {any} data
      */
-    blobCreateText: function (data) {
-        var blob = new Blob([data], { type: "text/plain;charset=utf-8" });
-        return blob;
-    },
+    blobCreateText: data => new Blob([data], { type: "text/plain;charset=utf-8" }),
 
     /**
      * blob 构建
      * @param {any} data
      * @param {any} type
      */
-    blobCreate: function (data, type) {
-        var blob = new Blob([data], { type: type });
-        return blob;
-    },
+    blobCreate: (data, type) => new Blob([data], { type: type }),
 
     /**
      * blob 下载
      * @param {any} blob
      * @param {any} filename
      */
-    blobDownload: function (blob, filename) {
-        return saveAs(blob, filename)
-    },
+    blobDownload: (blob, filename) => saveAs(blob, filename),
 
     /**
      * blob 转 url
      * @param {any} blob
      */
-    blobAsUrl: function (blob) {
-        return window.URL.createObjectURL(blob);
-    },
+    blobAsUrl: blob => window.URL.createObjectURL(blob),
 
     /**
      * blob 请求
@@ -279,6 +292,93 @@
         }).then(res => {
             return res.blob();
         });
+    },
+
+    /**
+     * 获取 PDF 文档对象
+     * @param {any} url
+     */
+    pdfDocumentGet: function (url) {
+        return new Promise((resolve, reject) => {
+            (new Promise((resolve1) => {
+                switch (nrSpider.type(url)) {
+                    case "File":
+                        {
+                            var fr = new FileReader();
+                            fr.onload = function (e) {
+                                var u8a = nrSpider.base64ToUint8Array(e.target.result)
+                                resolve1(u8a);
+                            }
+                            fr.readAsDataURL(url)
+                        }
+                        break;
+                    case "String":
+                    default:
+                        resolve1(url);
+                }
+            })).then(url => {
+                pdfjsLib.getDocument(url).promise.then(pdfDocument => {
+                    //console.log(pdfDocument.numPages); //总页数
+                    resolve(pdfDocument);
+                }).catch(err => {
+                    reject(err);
+                })
+            })
+        })
+    },
+
+    /**
+     * 获取 PDF 页对象
+     * @param {any} pdfDocument
+     * @param {any} pageIndex
+     */
+    pdfPageGet: (pdfDocument, pageIndex) => pdfDocument.getPage(pageIndex),
+
+    /**
+     * 渲染 PDF 页
+     * @param {any} pdfPage
+     * @param {any} canvas
+     */
+    pdfPageRender: function (pdfPage, canvas) {
+        var viewport = pdfPage.getViewport({ scale: 1 });
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        var ctx = canvas.getContext("2d");
+        var renderTask = pdfPage.render({
+            canvasContext: ctx,
+            viewport
+        });
+        return renderTask.promise
+    },
+
+    /**
+     * 获取 PDF 页内容
+     * @param {any} pdfPage
+     */
+    pdfPageContent: pdfPage => pdfPage.getTextContent(),
+
+    /**
+     * 获取 PDF 页内容（按行简单处理）
+     * @param {any} pdfPage
+     */
+    pdfPageContentRows: function (pdfPage) {
+        return new Promise((resolve) => {
+            var rows = [], line = 0;
+            pdfPage.getTextContent().then(textContent => {
+                line = textContent.items[0].transform[5];
+                textContent.items.forEach(item => {
+                    if (item.fontName != "Times") {
+                        if (line != item.transform[5]) {
+                            rows.push('\r\n');
+                            line = item.transform[5];
+                        }
+                        rows.push(item.str)
+                    }
+                })
+                resolve(rows);
+            })
+        })
     },
 
     /**
@@ -330,7 +430,20 @@
 
             //填充数据行
             var rows = [];
-            arr.forEach(obj => rows.push(Object.values(obj)));
+            arr.forEach(obj => {
+                var orow = Object.values(obj);
+                if (orow.length != heads.length) {
+                    orow = [];
+                    for (var i in heads) {
+                        if (i in obj) {
+                            orow.push(obj[i])
+                        } else {
+                            orow.push(null);
+                        }
+                    }
+                }
+                rows.push(orow);
+            });
             worksheet.addRows(rows);
 
             //保存
@@ -354,17 +467,23 @@
             //创建数据库
             var fiels = [];
             for (var i in cols) {
-                fiels.push(`${i} ${cols[i]}`);
+                fiels.push(`[${i}] ${cols[i]}`);
             }
-            esql.push(`CREATE TABLE ${tableName}(${fiels.join(',')})`);
+            esql.push(`DROP TABLE IF EXISTS [${tableName}]`);
+            esql.push(`CREATE TABLE [${tableName}](${fiels.join(',')})`);
 
             //写入数据
             arr.forEach(obj => {
                 var values = [];
                 for (var i in cols) {
-                    values.push(cols[i] == "int" ? obj[i] : `'${obj[i]}'`);
+                    var ci = obj[i];
+                    if (ci == null) {
+                        values.push('null');
+                    } else {
+                        values.push(cols[i].indexOf("int") >= 0 ? ci : `'${ci}'`);
+                    }
                 }
-                esql.push(`INSERT INTO ${tableName} VALUES (${values.join(',')})`)
+                esql.push(`INSERT INTO [${tableName}] VALUES (${values.join(',')})`)
             });
 
             resolve(esql.join(';\n'));
@@ -381,8 +500,10 @@
                     "https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js",
                     "https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js",
                     "https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js",
-                    "https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"
+                    "https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js",
+                    "https://npm.elemecdn.com/pdfjs-dist@2.10.377/build/pdf.min.js"
                 ]).then(() => {
+                    console.warn("The component is loaded successfully")
 
                     nrSpider.setItem = localforage.setItem;
                     nrSpider.getItem = localforage.getItem;

@@ -5,7 +5,7 @@
     date: "2020-04-28",
 
     //抓取数据
-    dataMatch: [],
+    dataResult: [],
 
     /**
      * 匹配结果
@@ -39,8 +39,8 @@
 
         var zip = new JSZip();
 
-        var data = spu.dataMatch;
-        var dataCommon = spu.dataMatch.filter(x => !x.id.startsWith("3"));
+        var data = spu.dataResult;
+        var dataCommon = spu.dataResult.filter(x => !x.id.startsWith("3"));
 
         //导出总数据
         zip.file(`${spu.config.fileName}.json`, JSON.stringify(data));
@@ -66,7 +66,7 @@
     //开始
     start: function () {
         nrSpider.init().then(() => {
-            spu.dataMatch = spu.matchResult();
+            spu.dataResult = spu.matchResult();
             spu.zip();
         });
     }
