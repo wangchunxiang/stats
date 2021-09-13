@@ -82,7 +82,7 @@ http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/
 ```
 npm install zoningjs
 ```
-**Releases** https://github.com/netnr/stats/releases/tag/1.0.0
+**Releases** https://github.com/netnr/stats/releases/tag/1.0.2
 
 列信息
 
