@@ -22,12 +22,12 @@
      * 下载
      * @param {boolean} distinct 去重
      */
-    zip: function (distinct) {
-        console.warn("开始下载，构建数据中...")
+    zip: function (distinct) {        
+        nrSpider.noticeVoice("开始下载，构建数据中...")
 
         var zip = new JSZip();
 
-        console.warn("正在写入 JSON")
+        nrSpider.noticeVoice("正在写入 JSON")
 
         //导出总数据
         zip.file(`${spc.config.fileName}-${spc.config.maxDeep}.json`, JSON.stringify(data));
@@ -40,15 +40,15 @@
             zip.file(`${i}.json`, JSON.stringify(sdata[i]));
         }
 
-        console.warn("正在生成 Excel")
+        nrSpider.noticeVoice("正在生成 Excel")
         nrSpider.arrayToExcel(data, { id: 100, txt: 400, pid: 100, num: 50, deep: 50 }).then(blobExcel => {
             zip.file(`${spc.config.fileName}-${spc.config.maxDeep}.xlsx`, blobExcel);
 
-            console.warn("正在生成 SQL")
+            nrSpider.noticeVoice("正在生成 SQL")
             nrSpider.arrayToSQL(data, spc.config.fileName.replaceAll('-', '_'), { id: "text primary key", txt: "text not null", pid: "text not null", num: "int not null", deep: "int" }).then(esql => {
                 zip.file(`${spc.config.fileName}-${spc.config.maxDeep}.sql`, esql);
 
-                console.warn("正在打包 ZIP")
+                nrSpider.noticeVoice("正在打包 ZIP")
                 zip.generateAsync({ type: "blob" }).then(function (content) {
                     saveAs(content, `${spc.config.fileName}-${spc.config.maxDeep}.zip`);
                 });
@@ -65,11 +65,11 @@
                 for (let pageIndex = 10; pageIndex <= pageCount; pageIndex++) {
                     nrSpider.pdfPageGet(pdfDocument, pageIndex).then(pdfPage => {
                         nrSpider.pdfPageContentRows(pdfPage).then(rows => {
-                            console.warn(rows.join(''));
+                            console.debug(rows.join(''));
                         })
 
                         nrSpider.pdfPageContent(pdfPage).then(items => {
-                            console.warn(items);
+                            console.debug(items);
                         })
                     })
                 }

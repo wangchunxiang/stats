@@ -5,9 +5,46 @@
 - nrSpider.js 为爬取基础依赖，拷贝到控制台先执行再跑对应的脚本
 - 爬取抓取网页内容后存储于浏览器本地，再次请求从本地读取，失败的链接不缓存
 - 爬取默认限制 1QPS，已存储本地链接不限制
-- 导出数据有 JSON、SQL（SQLite）、Excel，（如果有）还包括失败的数据 catch-*.json
+- 导出数据有 JSON、SQL（SQLite）、Excel（量大请通过 SQLite 导出），（如果有）失败的数据 catch-*.json
 
-### ❤ product_category.js
+### 🧡 zoning.js
+
+统计用区划和城乡划分代码  
+<http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/>  
+
+统计数据截止 2021-10-31 于 2021-12-30 发布  
+<http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2021>
+
+共 5 级
+
+**0.json** 深度 1、2、3  
+**1101.json** 深度 4、5  
+**6590.json** 深度 4、5  
+
+**stats-zoning-3.json** 爬虫三级总数据 就是 **0.json**  
+**stats-zoning-4.json** 爬虫四级总数据  
+**stats-zoning-5.json** 爬虫五级总数据  
+
+```
+npm install zoningjs
+```
+
+列信息
+
+字段 | 类型 | 说明
+---- | ---- | ----
+id | string | 区划代码，唯一
+txt | string | 名称
+pid | string | 父级区划代码
+sid | string | 简短区划代码，唯一
+spid | string | 简短父级区划代码
+ct | string | 城乡分类代码
+num | int | 同级排序
+leaf | int | 是叶节点（1：是；2：否）
+deep | int | 爬取深度
+
+
+### 🧡 product_category.js
 
 统计用产品分类目录  
 http://www.stats.gov.cn/tjsj/tjbz/tjypflml/index.html
@@ -41,7 +78,7 @@ num | int | 同级排序
 deep | int | 爬取深度
 
 
-### ❤ product_unit.js
+### 🧡 product_unit.js
 
 产品计量单位  
 http://tjj.hubei.gov.cn/bsfw/lwzb/ywzn/202005/t20200521_2282796.shtml
@@ -60,40 +97,3 @@ http://tjj.hubei.gov.cn/bsfw/lwzb/ywzn/202005/t20200521_2282796.shtml
 id | string | 代码，唯一
 txt | string | 名称
 remark | string | 说明
-
-
-### ❤ zoning.js
-
-统计用区划和城乡划分代码  
-http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/
-
-最新发布时间 2020-06-30 ，共 5 级
-
-**0.json** 深度 1、2、3  
-**1101.json** 深度 4、5  
-**6590.json** 深度 4、5  
-
-**stats-zoning-3.json** 爬虫三级总数据  
-**stats-zoning-4.json** 爬虫四级总数据  
-**stats-zoning-5.json** 爬虫五级总数据  
-
-**catch-5.json** 爬虫五级异常记录（失败的链接）
-
-```
-npm install zoningjs
-```
-**Releases** https://github.com/netnr/stats/releases/tag/1.0.2
-
-列信息
-
-字段 | 类型 | 说明
----- | ---- | ----
-id | string | 区划代码，唯一
-txt | string | 名称
-pid | string | 父级区划代码
-sid | string | 简短区划代码，唯一
-spid | string | 简短父级区划代码
-ct | string | 城乡分类代码
-num | int | 同级排序
-leaf | int | 是叶节点（1：是；2：否）
-deep | int | 爬取深度

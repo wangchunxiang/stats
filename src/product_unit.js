@@ -35,7 +35,7 @@
      * @param {boolean} distinct 去重
      */
     zip: function (distinct) {
-        console.warn("开始下载，构建数据中...")
+        nrSpider.noticeVoice("开始下载，构建数据中...")
 
         var zip = new JSZip();
 
@@ -47,15 +47,15 @@
         //导出通用（排除专用）
         zip.file(`${spu.config.fileName}-common.json`, JSON.stringify(dataCommon));
 
-        console.warn("正在生成 Excel")
+        nrSpider.noticeVoice("正在生成 Excel")
         nrSpider.arrayToExcel(data, { id: 80, txt: 200, remark: 300 }).then(blobExcel => {
             zip.file(`${spu.config.fileName}.xlsx`, blobExcel);
 
-            console.warn("正在生成 SQL")
+            nrSpider.noticeVoice("正在生成 SQL")
             nrSpider.arrayToSQL(data, spu.config.fileName.replaceAll('-', '_'), { id: "text primary key", txt: "text not null", remark: "text" }).then(esql => {
                 zip.file(`${spu.config.fileName}.sql`, esql);
 
-                console.warn("正在打包 ZIP")
+                nrSpider.noticeVoice("正在打包 ZIP")
                 zip.generateAsync({ type: "blob" }).then(function (content) {
                     saveAs(content, `${spu.config.fileName}.zip`);
                 });

@@ -1,8 +1,8 @@
 ﻿var sz = {
 
     //版本号
-    version: "2.2020.0",
-    date: "2020-11-06",
+    version: "2.2021.0",
+    date: "2021-12-30",
 
     //抓取目录
     dataIndex: [],
@@ -36,14 +36,13 @@
                     var href = nrSpider.parsingAttr(aa[0], 'href');
                     data.push({ id: aa[0].innerText.trim(), txt: aa[1].innerText.trim(), pid: item.id, sid: href.split('/').pop().split('.')[0], spid: item.sid || item.id, num: oi++, url: item.suburl, suburl: nrSpider.parsingAttr(aa[0], 'href'), leaf: 0, deep: item.deep + 1 })
                 } else {
-                    //中间级别无下级 http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2020/65/6501.html
+                    //中间级别无下级 http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2021/65/6501.html
                     var tds = tr.getElementsByTagName('td');
                     var sid = sz.trimEndZero(tds[0].innerText.trim());
                     data.push({ id: tds[0].innerText.trim(), txt: tds[1].innerText.trim(), pid: item.id, sid: sid, spid: item.sid, num: oi++, url: item.suburl, leaf: 1, deep: item.deep + 1 })
                 }
             }
         })
-
         return data;
     },
 
@@ -64,7 +63,7 @@
      * @param {any} url
      */
     grabIndex: function (url) {
-        nrSpider.requestCache(url, 'GBK', sz.config.fileName).then(html => {
+        nrSpider.requestCache(url, null, sz.config.fileName).then(html => {
 
             var data = [];
             //解析
@@ -78,7 +77,7 @@
 
             sz.dataIndex = sz.dataIndex.concat(data);
 
-            console.warn("目录解析完成");
+            nrSpider.noticeVoice('目录解析完成');
 
             //过滤数据加入队列
             var fdata = sz.filterData(sz.dataIndex, sz.config.filterCode);
@@ -98,7 +97,7 @@
             return
         }
 
-        nrSpider.requestCache(item.suburl, 'GBK', sz.config.fileName).then(res => {
+        nrSpider.requestCache(item.suburl, null, sz.config.fileName).then(res => {
             //空内容
             if (res == "") {
                 sz.dataCatch.push({ item, error: "is empty" });
@@ -132,58 +131,59 @@
     },
 
     //抓取境外（港澳台） https://lbs.qq.com/service/webService/webServiceGuide/webServiceDistrict
+    //获取全部行政区划数据另存为线上的 districtJson 链接
+    // CORS ERROR: The request client is not a secure context and the resource is in more-private address space local
+    // chrome://flags => Block insecure private network requests => default => Disabled
     grabOutland: function () {
-        console.warn("境外（港澳台）处理中");
+        nrSpider.noticeVoice('境外（港澳台）处理中');
         return new Promise((resolve) => {
-            nrSpider.getScript("https://s1.netnr.eu.org/libs/text-to-image/20201119/tti.js").then(() => {
-                new tti().asText("https://img13.360buyimg.com/ddimg/jfs/t1/204958/32/5863/175214/613ab6d5E0e894894/10cf6ad9fc63e04e.png", function (res) {
-                    res = JSON.parse(res);
-                    console.warn(res);
+            var districtJson = "https://raw.githubusercontent.com/netnr/test/main/tmp/district-20211103.json";
+            fetch(districtJson).then(x => x.json()).then(res => {
+                console.debug(res);
 
-                    var okey = ["71", "81", "82"], ris0 = [], ris1 = [], ris2 = [];
+                var okey = ["71", "81", "82"], ris0 = [], ris1 = [], ris2 = [];
 
-                    //删除已添加的数据
-                    for (var i = sz.dataIndex.length - 1; i >= 0; i--) {
-                        if (okey.indexOf(sz.dataIndex[i].id) >= 0) {
-                            sz.dataIndex.splice(i, 1);
-                        }
+                //删除已添加的数据
+                for (var i = sz.dataIndex.length - 1; i >= 0; i--) {
+                    if (okey.indexOf(sz.dataIndex[i].id) >= 0) {
+                        sz.dataIndex.splice(i, 1);
                     }
-                    for (var i = sz.dataResult.length - 1; i >= 0; i--) {
-                        if (okey.indexOf(sz.dataResult[i].id.substring(0, 2)) >= 0) {
-                            sz.dataResult.splice(i, 1);
-                        }
+                }
+                for (var i = sz.dataResult.length - 1; i >= 0; i--) {
+                    if (okey.indexOf(sz.dataResult[i].id.substring(0, 2)) >= 0) {
+                        sz.dataResult.splice(i, 1);
                     }
+                }
 
-                    ris0 = res.result[0].filter(x => okey.indexOf((x.id + "").substring(0, 2)) >= 0);
-                    var oi = sz.dataIndex.length;
-                    ris0.forEach(x => {
-                        var sid = (x.id + "").substring(0, 2)
-                        sz.dataIndex.push({ id: sid, txt: x.fullname, pid: "0", sid: sid, spid: "0", num: oi++, leaf: 0, deep: 1 });
+                ris0 = res.result[0].filter(x => okey.indexOf((x.id + "").substring(0, 2)) >= 0);
+                var oi = sz.dataIndex.length;
+                ris0.forEach(x => {
+                    var sid = (x.id + "").substring(0, 2)
+                    sz.dataIndex.push({ id: sid, txt: x.fullname, pid: "0", sid: sid, spid: "0", num: oi++, leaf: 0, deep: 1 });
+                });
+
+                if (sz.config.maxDeep >= 2) {
+                    ris1 = res.result[1].filter(x => okey.indexOf((x.id + "").substring(0, 2)) >= 0);
+                    oi = 1;
+                    ris1.forEach(x => {
+                        var spid = (x.id + "").substring(0, 2);
+                        var sid = (x.id + "").substring(0, spid == "71" ? 4 : 6);
+                        sz.dataResult.push({ id: sid.padEnd(12, '0'), txt: x.fullname, pid: spid, sid: sid, spid: spid, num: oi++, leaf: spid == "71" ? 0 : 1, deep: 2 })
                     });
+                }
+                if (sz.config.maxDeep >= 3) {
+                    ris2 = res.result[2].filter(x => (x.id + "").substring(0, 2) == "71");
+                    oi = 1;
+                    ris2.forEach(x => {
+                        var sid = x.id + "";
+                        var spid = sid.substring(0, 4);
+                        sz.dataResult.push({ id: sid.padEnd(12, '0'), txt: x.fullname, pid: spid.padEnd(12, '0'), sid: sid, spid: spid, num: oi++, leaf: 1, deep: 3 })
+                    });
+                }
 
-                    if (sz.config.maxDeep >= 2) {
-                        ris1 = res.result[1].filter(x => okey.indexOf((x.id + "").substring(0, 2)) >= 0);
-                        oi = 1;
-                        ris1.forEach(x => {
-                            var spid = (x.id + "").substring(0, 2);
-                            var sid = (x.id + "").substring(0, spid == "71" ? 4 : 6);
-                            sz.dataResult.push({ id: sid.padEnd(12, '0'), txt: x.fullname, pid: spid, sid: sid, spid: spid, num: oi++, leaf: spid == "71" ? 0 : 1, deep: 2 })
-                        });
-                    }
-                    if (sz.config.maxDeep >= 3) {
-                        ris2 = res.result[2].filter(x => (x.id + "").substring(0, 2) == "71");
-                        oi = 1;
-                        ris2.forEach(x => {
-                            var sid = x.id + "";
-                            var spid = sid.substring(0, 4);
-                            sz.dataResult.push({ id: sid.padEnd(12, '0'), txt: x.fullname, pid: spid.padEnd(12, '0'), sid: sid, spid: spid, num: oi++, leaf: 1, deep: 3 })
-                        });
-                    }
-
-                    console.warn("境外（港澳台）处理完成");
-                    resolve();
-                })
-            });
+                nrSpider.noticeVoice("境外（港澳台）处理完成");
+                resolve();
+            })
         })
     },
 
@@ -203,11 +203,13 @@
                 sz.dataCatch.splice(i, 1)
             }
         }
+
+        nrSpider.noticeVoice(`刷新异常数据完成，还剩 ${sz.dataCatch.length} 条`);
     },
 
     //构建打包数据
     zipReady: function () {
-        console.warn("构建打包数据...")
+        nrSpider.noticeVoice("开始构建打包数据")
 
         //目录、子数据、总数据
         var indexs = [], sdata = {}, data = [];
@@ -237,7 +239,7 @@
 
         sz.zipData = { indexs, sdata, data };
 
-        console.warn("构建数据完成")
+        nrSpider.noticeVoice("构建数据完成")
     },
 
     /**
@@ -246,7 +248,7 @@
     zip: function (type) {
         var zip = new JSZip();
 
-        console.warn(`下载 ${type}`)
+        nrSpider.noticeVoice(`下载 ${type}，构建中...`)
 
         switch (type) {
             case "json-all":
@@ -291,8 +293,16 @@
                     });
                 });
                 break;
+            case "excel":
+                if (sz.config.maxDeep == 5) {
+                    nrSpider.noticeVoice("5 级数量近 70万，导出 Excel 浏览器可能会崩溃，建议通过 SQLite 导出 Excel 文件");
+                }
+                nrSpider.arrayToExcel(sz.zipData.data).then(function (content) {
+                    saveAs(content, `${sz.config.fileName}-${sz.config.maxDeep}.xlsx`);
+                });
+                break;
             default:
-                console.warn("type Optional: sql、json-split、json-all")
+                nrSpider.noticeVoice("type Optional: sql、json-split、json-all")
         }
     },
 
@@ -314,7 +324,7 @@
                 clearInterval(nrSpider.defer.task);
                 clearInterval(nrSpider.defer.endQueue);
 
-                console.warn("队列为空，已自动停止任务");
+                nrSpider.noticeVoice("队列为空，已自动停止任务");
                 console.table({
                     start: new Date(sz.startTime).toLocaleString(),
                     now: new Date().toLocaleString()
@@ -345,16 +355,17 @@ sz.config = {
     fileName: "stats-zoning",
 
     //索引目录
-    indexList: "http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2020/index.html",
+    indexList: "http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2021/index.html",
     //最大深度（1-5）
-    maxDeep: 3,
+    maxDeep: 5,
     //抓指定编码，为空时抓所有
-    filterCode: ""
+    filterCode: "", //
 };
 
 //下载zip，抓取完成后
 //sz.zip('json-split')
 //sz.zip('json-all')
+//sz.zip('excel')
 //sz.zip('sql')
 
 //sz.grabCatch() //抓取异常

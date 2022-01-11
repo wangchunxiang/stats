@@ -1,23 +1,17 @@
 ﻿var nrSpider = {
 
-    //解析前缀
-    parsingKey: "nr",
+    parsingKey: "nr", //解析前缀
 
-    //请求量
-    countRequest: 0,
-    //当前请求量
-    currentRequest: 0,
-    //最后请求时间
-    lastRequestTime: Date.now(),
+    countRequest: 0, //请求量
+    currentRequest: 0, //当前请求量
+    lastRequestTime: Date.now(), //最后请求时间
+    queueList: [], //队列记录
 
-    //队列记录
-    queueList: [],
+    inited: false, //初始化
 
-    //初始化
-    inited: false,
+    defer: {}, //延迟
 
-    //延迟
-    defer: {},
+    enableVoice: true, //是否开启语音提示
 
     /**
      * 队列新增
@@ -52,12 +46,12 @@
         var dkey = `console${type}`, ltkey = `lastTime${type}`, now = Date.now();
         if (nrSpider.defer[ltkey] == null || now - nrSpider.defer[ltkey] > 3000) {
             nrSpider.defer[ltkey] = now;
-            console.warn(msg)
+            console.debug(msg)
         } else {
             clearTimeout(nrSpider.defer[dkey]);
             nrSpider.defer[dkey] = setTimeout(() => {
-                console.warn(msg)
-            }, 500);
+                console.debug(msg)
+            }, 800);
         }
     },
 
@@ -73,7 +67,12 @@
         nrSpider.defer.task = setInterval(() => {
             var notGap = Date.now() - nrSpider.lastRequestTime < gap, isLimit = nrSpider.currentRequest > 0;
             if (notGap || isLimit) {
-                nrSpider.consoleFuse('task is limit, waiting...', 'task');
+                if (Date.now() - nrSpider.lastRequestTime > 1000 * 60) {
+                    nrSpider.currentRequest--;
+                    nrSpider.consoleFuse('Task timeout skipped...', 'task');
+                } else {
+                    nrSpider.consoleFuse('Task limit, waiting...', 'task');
+                }
             } else {
                 task();
             }
@@ -84,7 +83,7 @@
             if (e.keyCode == 19) {
                 clearInterval(nrSpider.defer.task);
                 nrSpider.defer.taskStatus = 0;
-                console.warn("任务已暂停");
+                nrSpider.noticeVoice("任务已暂停");
             }
         }
     },
@@ -109,7 +108,7 @@
                 var ele = document.createElement("SCRIPT");
                 ele.src = src;
                 ele.type = "text/javascript";
-                document.getElementsByTagName("HEAD")[0].appendChild(ele);
+                document.head.appendChild(ele);
                 ele.onload = ele.onreadystatechange = function () {
                     if (!this.readyState || this.readyState == "loaded" || this.readyState == "complete") {
                         resolve();
@@ -199,7 +198,7 @@
     /**
      * 请求链接
      * @param {any} url
-     * @param {any} encoding
+     * @param {any} encoding GBK 或 utf-8
      */
     requestLink: function (url, encoding) {
         return new Promise((resolve, reject) => {
@@ -241,10 +240,14 @@
         return new Promise((resolve, reject) => {
             var ckey = `${cachePrefix}:${url}`
             nrSpider.getItem(ckey).then(res => {
-                if (res == null) {
+                if (res == null || res.includes("请开启JavaScript并刷新该页")) {
                     nrSpider.requestLink(url, encoding).then(html => {
-                        nrSpider.setItem(ckey, html);
-                        resolve(html);
+                        if (html.includes("请开启JavaScript并刷新该页")) {
+                            reject(err);
+                        } else {
+                            nrSpider.setItem(ckey, html);
+                            resolve(html);
+                        }
                     }).catch(err => {
                         reject(err);
                     })
@@ -292,6 +295,19 @@
         }).then(res => {
             return res.blob();
         });
+    },
+
+    /**
+     * 语音播放
+     * @param {*} text 
+     */
+    noticeVoice: function (text) {
+        console.debug(text);
+        if (nrSpider.enableVoice) {
+            var msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'zh-CN';
+            window.speechSynthesis.speak(msg);
+        }
     },
 
     /**
@@ -497,13 +513,14 @@
                 resolve();
             } else {
                 nrSpider.getScripts([
-                    "https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js",
-                    "https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js",
-                    "https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js",
-                    "https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js",
-                    "https://npm.elemecdn.com/pdfjs-dist@2.10.377/build/pdf.min.js"
+                    "https://npm.elemecdn.com/localforage@1.10.0/dist/localforage.min.js",
+                    "https://npm.elemecdn.com/jszip@3.7.1/dist/jszip.min.js",
+                    "https://npm.elemecdn.com/file-saver@2.0.5/dist/FileSaver.min.js",
+                    "https://npm.elemecdn.com/exceljs@4.3.0/dist/exceljs.min.js",
+                    "https://npm.elemecdn.com/pdfjs-dist@2.12.313/build/pdf.min.js"
                 ]).then(() => {
-                    console.warn("The component is loaded successfully")
+                    nrSpider.noticeVoice("组件初始化完成");
+                    nrSpider.noticeVoice("如需关闭语音提示，请设置 nrSpider.noticeVoice = false");
 
                     nrSpider.setItem = localforage.setItem;
                     nrSpider.getItem = localforage.getItem;

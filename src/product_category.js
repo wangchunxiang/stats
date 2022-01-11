@@ -79,7 +79,7 @@
         });
 
         Promise.all(parr).then(() => {
-            console.warn("目录解析完成");
+            nrSpider.noticeVoice("目录解析完成");
 
             //修复目录排序
             spc.dataIndex.sort(function (a, b) { return a.id - b.id });
@@ -150,7 +150,7 @@
      * @param {boolean} distinct 去重
      */
     zip: function (distinct) {
-        console.warn("开始下载，构建数据中...")
+        nrSpider.noticeVoice("开始下载，构建数据中...")
 
         var zip = new JSZip();
 
@@ -173,7 +173,7 @@
 
         //去除重复的编码
         if (distinct) {
-            console.warn("正在数据去重")
+            nrSpider.noticeVoice("正在数据去重")
 
             if (spc.config.maxDeep > 2) {
                 for (var i = data.length - 1; i >= 0; i--) {
@@ -194,7 +194,7 @@
             }
         }
 
-        console.warn("正在写入 JSON")
+        nrSpider.noticeVoice("正在写入 JSON")
 
         //导出总数据
         zip.file(`${spc.config.fileName}-${spc.config.maxDeep}.json`, JSON.stringify(data));
@@ -212,15 +212,15 @@
             zip.file(`catch-${spc.config.maxDeep}.json`, JSON.stringify(spc.dataCatch));
         }
 
-        console.warn("正在生成 Excel")
+        nrSpider.noticeVoice("正在生成 Excel")
         nrSpider.arrayToExcel(data, { id: 100, txt: 400, pid: 100, num: 50, deep: 50 }).then(blobExcel => {
             zip.file(`${spc.config.fileName}-${spc.config.maxDeep}.xlsx`, blobExcel);
 
-            console.warn("正在生成 SQL")
+            nrSpider.noticeVoice("正在生成 SQL")
             nrSpider.arrayToSQL(data, spc.config.fileName.replaceAll('-', '_'), { id: "text primary key", txt: "text not null", pid: "text not null", num: "int not null", deep: "int" }).then(esql => {
                 zip.file(`${spc.config.fileName}-${spc.config.maxDeep}.sql`, esql);
 
-                console.warn("正在打包 ZIP")
+                nrSpider.noticeVoice("正在打包 ZIP")
                 zip.generateAsync({ type: "blob" }).then(function (content) {
                     saveAs(content, `${spc.config.fileName}-${spc.config.maxDeep}.zip`);
                 });
@@ -246,7 +246,7 @@
                 clearInterval(nrSpider.defer.task);
                 clearInterval(nrSpider.defer.endQueue);
 
-                console.warn("队列为空，已自动停止任务");
+                nrSpider.noticeVoice("队列为空，已自动停止任务");
                 console.table({
                     start: new Date(spc.startTime).toLocaleString(),
                     now: new Date().toLocaleString()
